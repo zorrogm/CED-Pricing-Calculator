@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CED: Managed Services Pricign Calcualtor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#071024; --card:#0b1220; --accent1:#6EE7B7; --accent2:#60A5FA; --muted: rgba(255,255,255,0.65);
+  --select-text: #071024;
+}
+*{box-sizing:border-box}
+body{ margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(180deg,#040613 0%, #071024 100%); font-family:Inter,system-ui; color:#eaf6ff; padding:28px; }
+.stage{ width:100%; max-width:1140px; perspective:900px; }
+.card-wrap{ transform-style:preserve-3d; transition:transform .12s ease-out }
+.card{ display:flex; gap:22px; align-items:stretch; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:14px; padding:20px; border:1px solid rgba(255,255,255,0.04); box-shadow: 0 20px 60px rgba(3,6,20,0.7); transform-style:preserve-3d; overflow:hidden; }
+
+/* left controls */
+.controls{ width:46%; min-width:320px; padding:12px; border-radius:10px; transform: translateZ(12px) }
+h1{margin:4px 0 10px; font-size:20px; font-weight:800}
+.hint{color:var(--muted); font-size:13px; margin-bottom:10px}
+.field{margin-bottom:12px}
+label{display:block; font-size:13px; color:var(--muted); margin-bottom:6px}
+select,input[type=number], .textinput{
+  width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.04);
+  background:#fff; color:var(--select-text); font-weight:600; outline:none; appearance:none;
+}
+.select-wrap{ position:relative }
+.select-wrap:after{ content:''; position:absolute; right:12px; top:50%; transform:translateY(-50%) rotate(45deg); width:9px; height:9px; border-right:2px solid rgba(10,20,40,0.35); border-bottom:2px solid rgba(10,20,40,0.35); pointer-events:none; }
+
+select:focus,input:focus{ box-shadow: 0 10px 30px rgba(96,165,250,0.04) }
+.row{display:flex;gap:8px;align-items:center}
+.btn{ padding:10px 14px; border-radius:12px; border:none; cursor:pointer; background: linear-gradient(90deg,var(--accent2),var(--accent1)); color:#041024; font-weight:800; box-shadow: 0 10px 30px rgba(96,165,250,0.08); }
+
+/* right preview (reduced dramatics) */
+.preview{ flex:1; padding:18px; display:flex; align-items:center; justify-content:center; position:relative; min-height:320px }
+.holo-plate{ width:100%; height:320px; border-radius:12px; border:1px solid rgba(255,255,255,0.03);
+  background: linear-gradient(120deg, rgba(96,165,250,0.02), rgba(110,231,183,0.01)); box-shadow: 0 30px 80px rgba(2,6,23,0.85);
+  display:flex; align-items:center; justify-content:center; transform: translateZ(12px) rotateX(-4deg); overflow:visible }
+.float-card{ width:520px; max-width:92%; height:200px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-direction:column;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.05); box-shadow: 0 18px 48px rgba(2,6,23,0.45);
+  transform-style:preserve-3d; transition: transform .14s, box-shadow .14s; overflow:hidden; padding:12px }
+.price { font-size:40px; font-weight:900; letter-spacing:-1px; color:#fff; text-shadow:0 6px 20px rgba(96,165,250,0.08) }
+.meta{ color:var(--muted); font-size:13px; margin-top:6px; text-align:center; max-width:92%; word-break:break-word }
+.neon{ position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen }
+.glow{ position:absolute; width:200px; height:200px; border-radius:50%; filter:blur(36px); left:-30px; top:-30px; background: radial-gradient(circle at 20% 30%, rgba(96,165,250,0.12), transparent 20%); transform: translateZ(6px) }
+.glow2{ position:absolute; width:120px; height:120px; border-radius:50%; filter:blur(34px); right:-20px; bottom:-20px; background: radial-gradient(circle at 70% 70%, rgba(110,231,183,0.10), transparent 25%) }
+
+.info-row{ display:flex; gap:8px; align-items:center; justify-content:flex-start; margin-top:12px }
+.small{ font-size:12px; color:var(--muted) }
+
+/* conditional fields */
+.cond{ display:none; margin-top:8px; }
+
+@media (max-width:980px){ .card{ flex-direction:column } .controls{ width:100% } .preview{ width:100% } }
+</style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="card-wrap" id="cardWrap">
+      <div class="card" id="card">
+        <div class="controls">
+          <h1>CED: Managed Services Pricign Calcualtor</h1>
+          <!-- hint removed as requested -->
+
+          <!-- Billing cycle toggle (Monthly / Yearly) -->
+          <div class="field">
+            <label>Billing cycle</label>
+            <div class="row">
+              <label style="background:#fff;color:var(--select-text);padding:8px 12px;border-radius:10px;cursor:pointer">
+                <input id="billingMonthly" name="billingCycle" type="radio" value="monthly" checked style="margin-right:8px;vertical-align:middle"> Monthly
+              </label>
+              <label style="background:#fff;color:var(--select-text);padding:8px 12px;border-radius:10px;cursor:pointer">
+                <input id="billingYearly" name="billingCycle" type="radio" value="yearly" style="margin-right:8px;vertical-align:middle"> Yearly
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Service Category</label>
+            <div class="select-wrap"><select id="service">
+              <option>Standard Listings (Product Uploads)</option>
+              <option>Advanced Listings (Optimized Content)</option>
+              <option>Enhanced Listings (Rich Media + Optimized)</option>
+              <option>Brand Storefront / Brand Story</option>
+              <option>Advertising Strategy (Ads Setup)</option>
+            </select></div>
+          </div>
+
+          <div class="field">
+            <label>Platform</label>
+            <div class="select-wrap"><select id="platform">
+              <option>Amazon</option><option>TikTok</option><option>eBay</option><option>Walmart</option>
+              <option>Etsy</option><option>Shein</option><option>Temu</option>
+            </select></div>
+          </div>
+
+          <div class="field">
+            <label>Product count (or enter 1 for storefront/one-off)</label>
+            <input id="count" type="number" min="1" value="20" />
+          </div>
+
+          <!-- conditional extras -->
+          <div id="adsBudgetField" class="cond field">
+            <label>Ad budget (select bracket)</label>
+            <div class="select-wrap"><select id="adBudget">
+              <option value="0-5000">Up to $5,000</option>
+              <option value="5000-10000">$5,000–$10,000</option>
+              <option value="10000-25000">$10,000–$25,000</option>
+              <option value="25000-50000">$25,000–$50,000</option>
+            </select></div>
+          </div>
+
+          <div id="storefrontSizeField" class="cond field">
+            <label>Storefront complexity</label>
+            <div class="select-wrap"><select id="storefrontSize">
+              <option value="basic">Basic — up to 5 categories</option>
+              <option value="advanced">Advanced — 10+ collections</option>
+            </select></div>
+          </div>
+
+          <div id="premiumAplusField" class="cond field">
+            <label>A+ Content level (Enhanced Listings)</label>
+            <div class="select-wrap"><select id="aplusLevel">
+              <option value="basic">Basic A+ — $75/product</option>
+              <option value="premium">Premium A+ — $100/product</option>
+            </select></div>
+          </div>
+
+          <!-- Recurring preset is shown so users can select a plan if they want recurring -->
+          <div id="recurringBox" class="field">
+            <label>Recurring preset (choose if you want a subscription quote)</label>
+            <div class="select-wrap"><select id="recurringPreset"></select></div>
+          </div>
+
+          <div style="display:flex; gap:10px; align-items:center; margin-top:12px">
+            <button class="btn" id="calcBtn">Calculate</button>
+            <!-- removed Demo / Copy / Download per request -->
+          </div>
+
+          <div class="info-row" style="margin-top:10px">
+            <div class="small" id="status">Ready</div>
+          </div>
+
+          <!-- deploy note removed -->
+        </div>
+
+        <div class="preview">
+          <div class="holo-plate" id="plate">
+            <div class="neon"><div class="glow"></div><div class="glow2"></div></div>
+            <div class="float-card" id="floatCard" role="status" aria-live="polite">
+              <div class="price" id="priceText">$1,000</div>
+              <div class="meta" id="metaText">Standard Listings • Amazon • 20 products</div>
+              <div class="small" id="detailText" style="margin-top:8px"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+<script>
+/* PRICING_DATA unchanged (keeps the full logic from PDF) */
+const PRICING_DATA = {
+  oneTime: {
+    "Standard Listings (Product Uploads)": {
+      "Amazon":[ {min:1,max:100,price:5}, {min:101,max:500,price:3}, {min:501,max:Infinity,price:3} ],
+      "TikTok":[ {min:1,max:100,price:4}, {min:101,max:500,price:2.5}, {min:501,max:Infinity,price:2} ],
+      "eBay":[ {min:1,max:100,price:4}, {min:101,max:500,price:2.5}, {min:501,max:Infinity,price:2} ],
+      "Walmart":[ {min:1,max:100,price:5}, {min:101,max:500,price:3.5}, {min:501,max:Infinity,price:3} ],
+      "Etsy":[ {min:1,max:100,price:4}, {min:101,max:500,price:2.5}, {min:501,max:Infinity,price:2} ],
+      "Shein":[ {min:1,max:100,price:5}, {min:101,max:500,price:3.5}, {min:501,max:Infinity,price:3} ],
+      "Temu":[ {min:1,max:100,price:5}, {min:101,max:500,price:3.5}, {min:501,max:Infinity,price:3} ]
+    },
+    "Advanced Listings (Optimized Content)": {
+      "Amazon":[ {min:1,max:10,price:60}, {min:11,max:50,price:50}, {min:51,max:100,price:50}, {min:101,max:Infinity,price:40} ],
+      "TikTok":[ {min:1,max:50,price:45}, {min:51,max:Infinity,price:35} ],
+      "eBay":[ {min:1,max:Infinity,price:40} ],
+      "Walmart":[ {min:1,max:Infinity,price:42} ],
+      "Etsy":[ {min:1,max:Infinity,price:40} ],
+      "Shein":[ {min:1,max:Infinity,price:45} ],
+      "Temu":[ {min:1,max:Infinity,price:45} ]
+    },
+    "Enhanced Listings (Rich Media + Optimized)": {
+      "Amazon":[ {min:1,max:Infinity,price:75,label:'Basic A+'}, {min:1,max:Infinity,price:100,label:'Premium A+'} ],
+      "TikTok":[ {min:1,max:Infinity,price:45} ],
+      "eBay":[ {min:1,max:Infinity,price:55} ],
+      "Walmart":[ {min:1,max:Infinity,price:62} ],
+      "Etsy":[ {min:1,max:Infinity,price:45} ],
+      "Shein":[ {min:1,max:Infinity,price:45} ],
+      "Temu":[ {min:1,max:Infinity,price:45} ]
+    },
+    "Brand Storefront / Brand Story": {
+      "any":[ {type:'storefront', priceRange:[500,1000], note:'500 basic (5 categories); 1000 advanced (10+ collections)'}, {type:'brandstory', priceRange:[200,400], note:'per story'} ]
+    },
+    "Advertising Strategy (Ads Setup)": {
+      "any":[ {type:'ads', priceRange:[500,1500], note:'setup fee varies by ad budget'} ]
+    }
+  },
+
+  recurring: {
+    presets: [
+      { key:'starter', label:'Starter (No Ads)', monthly:299, effective:{ quarterly:259, halfyear:199, yearly:null }, eligiblePlatforms:['Amazon','TikTok','Walmart','Shein','eBay','Etsy','Temu'] },
+      { key:'enterprise', label:'Enterprise (With Ads)', monthly:499, effective:{ quarterly:459, halfyear:399, yearly:359 }, eligiblePlatforms:['Amazon','TikTok','Walmart','Shein','eBay','Etsy','Temu'] },
+      { key:'growth_basic', label:'Growth Basic (No Ads)', monthly:699, effective:{ quarterly:599, halfyear:499, yearly:499 }, eligiblePlatforms:['Amazon','TikTok','Walmart','Shein','eBay','Etsy','Temu'] },
+      { key:'growth_enterprise', label:'Growth Enterprise (With Ads)', monthly:1099, effective:{ quarterly:999, halfyear:899, yearly:799 }, eligiblePlatforms:['Amazon','TikTok','Walmart','Shein','eBay','Etsy','Temu'] },
+      { key:'enhanced_basic', label:'Enhanced Basic (No Ads)', monthly:699, effective:{ quarterly:599, halfyear:499, yearly:399 }, eligiblePlatforms:['Amazon','TikTok','Walmart','Shein'] },
+      { key:'enhanced_enterprise', label:'Enhanced Enterprise (With Ads)', monthly:1099, effective:{ quarterly:999, halfyear:899, yearly:799 }, eligiblePlatforms:['Amazon','TikTok','Walmart','Shein'] },
+      { key:'enterprise_large', label:'Enterprise Large', monthly:1499, effective:{ quarterly:1299, halfyear:1099, yearly:899 }, eligiblePlatforms:['Amazon','TikTok','Walmart','Shein','eBay','Etsy','Temu'] }
+    ],
+    adBands: [
+      { bracket:'0-5000', monthly:500 },
+      { bracket:'5000-10000', monthly:800 },
+      { bracket:'10000-25000', monthly:1000 },
+      { bracket:'25000-50000', monthly:1500 }
+    ]
+  }
+};
+
+/* helpers (same business logic) */
+function findOneTimeUnit(service, platform, count, extras={}){
+  const svc = PRICING_DATA.oneTime[service];
+  if(!svc) return { error:'Unknown service' };
+  if(service === 'Brand Storefront / Brand Story') return { special: svc['any'] };
+  if(service === 'Advertising Strategy (Ads Setup)') return { special: svc['any'] };
+  const tiers = svc[platform];
+  if(!tiers) return { error:'Unknown platform for service' };
+  if(service.startsWith('Enhanced') && platform === 'Amazon' && Array.isArray(tiers) && extras.aplusLevel){
+    const pick = tiers.find(t => (extras.aplusLevel === 'premium' && t.label === 'Premium A+') || (extras.aplusLevel === 'basic' && t.label === 'Basic A+'));
+    if(pick) return { unit: pick.price, unitLabel: pick.label };
+  }
+  for(const t of tiers){
+    if(count >= (t.min || 1) && count <= (t.max || Infinity)) return { unit: t.price, tier: t };
+  }
+  const numeric = tiers.find(t=>t.price!==undefined);
+  if(numeric) return { unit: numeric.price };
+  return { error:'No matching tier found' };
+}
+
+function computeAdvertisingOneTime(adBudgetBracket){
+  const band = PRICING_DATA.recurring.adBands.find(b=>b.bracket === adBudgetBracket);
+  if(!band) return { error:'Unknown ad budget bracket' };
+  const recommended = band.monthly;
+  return { recommendedOneTime: recommended, range:[Math.round(recommended*0.6), Math.round(recommended*1.5)], monthlyBand: recommended };
+}
+
+function computeRecurringQuote(presetKey, frequency, platform){
+  const preset = PRICING_DATA.recurring.presets.find(p=>p.key===presetKey);
+  if(!preset) return { error:'Unknown preset' };
+  if(preset.eligiblePlatforms && !preset.eligiblePlatforms.includes(platform)) return { error:`Preset not eligible for ${platform}` };
+  const monthlyBase = preset.monthly;
+  const effective = preset.effective && preset.effective[frequency];
+  let monthlyEffective = effective || (function(){
+    if(frequency === 'quarterly') return Math.round(monthlyBase * 0.86);
+    if(frequency === 'halfyear') return Math.round(monthlyBase * 0.66);
+    if(frequency === 'yearly') return Math.round(monthlyBase * 0.9);
+    return monthlyBase;
+  })();
+  let months = frequency === 'monthly' ? 1 : (frequency === 'quarterly' ? 3 : (frequency === 'halfyear' ? 6 : 12));
+  let total = monthlyEffective * months;
+  let saving = Math.max(0, (monthlyBase * months) - total);
+  return { monthlyBase, monthlyEffective, months, total, saving, presetLabel: preset.label };
+}
+
+/* UI wiring (streamlined) */
+const serviceEl = document.getElementById('service');
+const platformEl = document.getElementById('platform');
+const countEl = document.getElementById('count');
+const calcBtn = document.getElementById('calcBtn');
+const priceText = document.getElementById('priceText');
+const metaText = document.getElementById('metaText');
+const detailText = document.getElementById('detailText');
+const statusEl = document.getElementById('status');
+const adsBudgetField = document.getElementById('adsBudgetField');
+const adBudgetEl = document.getElementById('adBudget');
+const storefrontSizeField = document.getElementById('storefrontSizeField');
+const storefrontSizeEl = document.getElementById('storefrontSize');
+const premiumAplusField = document.getElementById('premiumAplusField');
+const aplusLevelEl = document.getElementById('aplusLevel');
+const recurringBox = document.getElementById('recurringBox');
+const recurringPresetEl = document.getElementById('recurringPreset');
+const billingMonthly = document.getElementById('billingMonthly');
+const billingYearly = document.getElementById('billingYearly');
+
+let lastQuote = null;
+
+/* populate recurring presets */
+(function populatePresets(){
+  PRICING_DATA.recurring.presets.forEach(p=>{
+    const opt = document.createElement('option'); opt.value = p.key; opt.textContent = `${p.label} — ${p.monthly}/mo`;
+    recurringPresetEl.appendChild(opt);
+  });
+})();
+
+/* conditional fields visibility */
+function updateConditionalFields(){
+  const service = serviceEl.value;
+  if(service === 'Advertising Strategy (Ads Setup)') adsBudgetField.style.display='block'; else adsBudgetField.style.display='none';
+  if(service === 'Brand Storefront / Brand Story') storefrontSizeField.style.display='block'; else storefrontSizeField.style.display='none';
+  if(service.startsWith('Enhanced') && platformEl.value === 'Amazon') premiumAplusField.style.display='block'; else premiumAplusField.style.display='none';
+  // recurring box remains visible for user to pick subscription preset if they want (we deliberately show it)
+  recurringBox.style.display = 'block';
+}
+
+/* main render */
+function renderQuote(){
+  const service = serviceEl.value;
+  const platform = platformEl.value;
+  const count = Math.max(1, parseInt(countEl.value||'1',10));
+  const billing = billingYearly.checked ? 'yearly' : 'monthly';
+  const extras = { aplusLevel: aplusLevelEl.value, storefrontSize: storefrontSizeEl.value, adBudgetBracket: adBudgetEl.value };
+  statusEl.textContent = 'Calculating…';
+
+  // handle Brand & Ads special one-off ranges
+  if(service === 'Brand Storefront / Brand Story'){
+    const special = PRICING_DATA.oneTime[service]['any'];
+    const storefront = special.find(s=>s.type==='storefront');
+    const brandstory = special.find(s=>s.type==='brandstory');
+    if(count >= 5){
+      const low=storefront.priceRange[0], high=storefront.priceRange[1];
+      priceText.textContent = `${formatUSD(low)} — ${formatUSD(high)}`;
+      metaText.textContent = `Brand Storefront estimate (${storefront.note})`;
+      detailText.textContent = `Storefront complexity: ${storefrontSizeEl.value}`;
+      lastQuote = { service, platform, count, type:'storefront', low, high, storefrontSize: storefrontSizeEl.value };
+    } else {
+      const low=brandstory.priceRange[0], high=brandstory.priceRange[1];
+      priceText.textContent = `${formatUSD(low)} — ${formatUSD(high)}`;
+      metaText.textContent = `Brand Story estimate (per story)`;
+      detailText.textContent = `Recommendation: one story covers core brand messaging`;
+      lastQuote = { service, platform, count, type:'brandstory', low, high };
+    }
+    statusEl.textContent = 'One-time brand estimate';
+    return;
+  }
+
+  if(service === 'Advertising Strategy (Ads Setup)'){
+    const band = computeAdvertisingOneTime(adBudgetEl.value);
+    if(band.error){ priceText.textContent='—'; metaText.textContent=band.error; lastQuote={error:band.error}; statusEl.textContent='Error'; return; }
+    const low = band.range[0], high = band.range[1];
+    priceText.textContent = `${formatUSD(low)} — ${formatUSD(high)}`;
+    metaText.textContent = `One-time ad setup (recommended ${formatUSD(band.recommendedOneTime)})`;
+    detailText.textContent = `Ad budget bracket: ${adBudgetEl.value}`;
+    lastQuote = { service, platform, count, type:'adsOneTime', recommended:band.recommendedOneTime, low, high };
+    statusEl.textContent = 'One-time ad setup estimate';
+    return;
+  }
+
+  // normal per-product one-time
+  const unitResult = findOneTimeUnit(service, platform, count, extras);
+  if(unitResult.error){
+    priceText.textContent = '—'; metaText.textContent = unitResult.error; lastQuote = { error: unitResult.error }; statusEl.textContent = 'Error'; return;
+  }
+  const unit = unitResult.unit;
+  const totalOneTime = unit * count;
+
+  // recurring: if user selected a recurring preset, compute recurring (use billing variable)
+  const presetKey = recurringPresetEl.value;
+  if(presetKey){
+    // compute recurring quote using selected billing cycle (monthly/yearly)
+    // chosen billing cycle only affects recurring calculation; one-time still shown for reference
+    const recurring = computeRecurringQuote(presetKey, billing, platform);
+    if(!recurring.error){
+      // show recurring monthly effective
+      priceText.textContent = `${formatUSD(recurring.monthlyEffective)} / mo`;
+      metaText.textContent = `${recurring.presetLabel} — ${recurring.months}mo term • Total ${formatUSD(recurring.total)}`;
+      detailText.textContent = `One-time: ${formatUSD(totalOneTime)} • ${count} × ${formatUSD(unit)}/product`;
+      lastQuote = { service, platform, count, unit, totalOneTime, recurring };
+      statusEl.textContent = 'Recurring quote';
+      return;
+    }
+  }
+
+  // otherwise show one-time result
+  priceText.textContent = formatUSD(totalOneTime);
+  metaText.textContent = `${service} • ${platform} • ${count} products — ${formatUSD(unit)}/product`;
+  detailText.textContent = '';
+  lastQuote = { service, platform, count, unit, totalOneTime };
+  statusEl.textContent = 'One-time quote';
+}
+
+/* utility */
+function formatUSD(n){ return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n); }
+
+/* events */
+serviceEl.addEventListener('change', ()=>{ updateConditionalFields(); renderQuote(); });
+platformEl.addEventListener('change', ()=>{ updateConditionalFields(); renderQuote(); });
+countEl.addEventListener('input', ()=>{ /* noop */ });
+adBudgetEl.addEventListener('change', ()=>{ /* noop */ });
+recurringPresetEl.addEventListener('change', ()=>{ renderQuote(); });
+billingMonthly.addEventListener('change', ()=>{ renderQuote(); });
+billingYearly.addEventListener('change', ()=>{ renderQuote(); });
+
+calcBtn.addEventListener('click', (e)=>{ e.preventDefault(); renderQuote(); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); renderQuote(); } });
+
+/* initial setup */
+updateConditionalFields();
+renderQuote();
+
+/* reduced 3D tilt (subtle only) */
+(function tilt(){
+  const wrap = document.getElementById('cardWrap');
+  const stage = document.getElementById('stage');
+  const floatCard = document.getElementById('floatCard');
+  let rect = wrap.getBoundingClientRect();
+  function updateRect(){ rect = wrap.getBoundingClientRect(); }
+  // subtle tilt (reduced multipliers)
+  stage.addEventListener('mousemove', (e)=>{
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    const rx = (py - 0.5) * 6; // reduced
+    const ry = (px - 0.5) * -8; // reduced
+    wrap.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+    floatCard.style.transform = `translateZ(18px) rotateX(${ -rx/4 }deg) rotateY(${ -ry/6 }deg)`;
+  });
+  stage.addEventListener('mouseleave', ()=>{ wrap.style.transform='rotateX(0deg) rotateY(0deg)'; floatCard.style.transform='translateZ(12px) rotateX(0deg) rotateY(0deg)'; });
+  window.addEventListener('resize', updateRect); updateRect();
+})();
+
+/* expose for quick editing */
+window.PRICING_DATA = PRICING_DATA;
+console.info('CED: Managed Services Pricign Calcualtor loaded.');
+</script>
+</body>
+</html>
